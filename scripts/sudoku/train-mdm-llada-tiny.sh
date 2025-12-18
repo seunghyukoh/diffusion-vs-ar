@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-MODEL_SIZE="tiny"
+MODEL_SIZE="llada_tiny"
 NUM_GPUS=8
 BATCH_SIZE_PER_GPU=128
 GRAD_ACCUM_STEPS=1

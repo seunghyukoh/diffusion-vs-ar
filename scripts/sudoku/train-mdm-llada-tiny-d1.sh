@@ -3,7 +3,7 @@
 set -euo pipefail
 
 MODEL_SIZE="llada_tiny"
-NUM_GPUS=8
+NUM_GPUS=4
 BATCH_SIZE_PER_GPU=128
 GRAD_ACCUM_STEPS=1
 TOTAL_BATCH_SIZE=$((BATCH_SIZE_PER_GPU * GRAD_ACCUM_STEPS))
@@ -28,22 +28,22 @@ uv sync
 
 echo "=== Training MDM ==="
 
-exp=output/sudoku/mdm-${MODEL_SIZE}-alpha0.25-gamma1-bs${TOTAL_BATCH_SIZE}-lr1e-3-ep300-T20-`date "+%Y%m%d-%H%M%S"`
+exp=output/d1_sudoku_4x4/mdm-${MODEL_SIZE}-alpha0.25-gamma1-bs${TOTAL_BATCH_SIZE}-lr1e-3-ep300-T20-`date "+%Y%m%d-%H%M%S"`
 mkdir -p $exp
 
 uv run \
-    accelerate launch --multi_gpu --num_machines 1 --mixed_precision fp16 --num_processes 8 --main_process_port 20099 \
+    accelerate launch --multi_gpu --num_machines 1 --mixed_precision fp16 --num_processes ${NUM_GPUS} --main_process_port 20099 \
     src/train_bash.py \
         --stage mdm --overwrite_output_dir \
         --cache_dir ./cache \
         --model_name_or_path model_config_${MODEL_SIZE} \
         --do_train \
-        --dataset sudoku_train \
+        --dataset d1_sudoku_4x4_train \
         --finetuning_type full \
         --cutoff_len 164 \
         --output_dir $exp \
         --overwrite_cache \
-        --per_device_train_batch_size ${BATCH_SIZE} \
+        --per_device_train_batch_size ${BATCH_SIZE_PER_GPU} \
         --gradient_accumulation_steps ${GRAD_ACCUM_STEPS} \
         --lr_scheduler_type cosine \
         --logging_steps 1 \
@@ -55,7 +55,7 @@ uv run \
         --learning_rate 1e-3 \
         --num_train_epochs 300.0 \
         --plot_loss \
-        --run_name ${dataset}_prefix \
+        --run_name d1_sudoku_4x4_train \
         --preprocessing_num_workers 8 \
         --fp16 \
         --save_total_limit 1 \
@@ -67,6 +67,7 @@ uv run \
         --topk_decoding True \
         --alpha 0.25 \
         --gamma 1 \
+        --max_samples 100000 \
         > $exp/train.log
 
 
@@ -80,7 +81,7 @@ if [ ! -f "$exp/modeling_llada.py" ]; then
     cp model_config_${MODEL_SIZE}/modeling_llada.py $exp/
 fi
 
-for dataset in sudoku_test
+for dataset in d1_sudoku_4x4_test
 do
 topk_decoding=True
 mkdir -p $exp/$dataset

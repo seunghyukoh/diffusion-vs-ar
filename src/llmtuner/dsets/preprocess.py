@@ -41,8 +41,8 @@ def preprocess_dataset(
         model_inputs = {"input_ids": [], "attention_mask": [], "src_mask": []}
 
         for src, tgt in zip(examples["prompt"], examples["response"]):
-            src_ids = tokenizer.encode(src)
-            tgt_ids = tokenizer.encode(tgt)
+            src_ids = tokenizer.encode(str(src))
+            tgt_ids = tokenizer.encode(str(tgt))
             if data_args.cutoff_len is not None:
                 tgt_ids = tgt_ids[: (data_args.cutoff_len - 2)]
                 src_ids = src_ids[-(data_args.cutoff_len - 2 - len(tgt_ids)) :]

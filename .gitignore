@@ -287,3 +287,4 @@ experiments/test_*.yaml
 
 data/
 data.zip
+cache/

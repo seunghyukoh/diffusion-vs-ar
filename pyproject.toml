@@ -13,4 +13,6 @@ dependencies = [
     "wandb==0.14.0",
     "torch==2.5.1",
     "pre-commit>=4.3.0",
+    "aiohttp<3.11",  # aiohttp 3.11+ is not compatible with Python 3.9
+    "numpy<2.0.0",  # numpy 2.0+ is not compatible with Python 3.9
 ]

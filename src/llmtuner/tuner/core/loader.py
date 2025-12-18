@@ -69,7 +69,6 @@ def load_model_and_tokenizer(
         if model_args.checkpoint_dir is None
         else model_args.checkpoint_dir[0]
     )
-
     tokenizer = CustomTokenizer.from_pretrained(model_to_load)
     config = AutoConfig.from_pretrained(model_to_load, **config_kwargs)
 

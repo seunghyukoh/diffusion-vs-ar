@@ -1,0 +1,16 @@
+[project]
+name = "diffusion-vs-ar"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.9.*"
+dependencies = [
+    "transformers==4.37.2",
+    "datasets==2.14.7",
+    "accelerate==0.27.2",
+    "peft==0.6.0",
+    "matplotlib==3.7.0",
+    "wandb==0.14.0",
+    "torch==2.5.1",
+    "pre-commit>=4.3.0",
+]

@@ -1,6 +1,11 @@
 import json
 import math
 import os
+
+import matplotlib
+import numpy as np
+
+matplotlib.use("Agg")  # Use non-interactive backend
 from typing import List, Optional
 
 import matplotlib.pyplot as plt
@@ -42,9 +47,13 @@ def plot_loss(save_dictionary: os.PathLike, keys: Optional[List[str]] = None) ->
             logger.warning(f"No metric {key} to plot.")
             continue
 
+        # Convert to numpy arrays for better compatibility
+        steps = np.array(steps, dtype=np.float64)
+        metrics = np.array(metrics, dtype=np.float64)
+
         plt.figure()
         plt.plot(steps, metrics, alpha=0.4, label="original")
-        plt.plot(steps, smooth(metrics), label="smoothed")
+        plt.plot(steps, smooth(metrics.tolist()), label="smoothed")
         plt.title("training {} of {}".format(key, save_dictionary))
         plt.xlabel("step")
         plt.ylabel(key)
@@ -52,4 +61,5 @@ def plot_loss(save_dictionary: os.PathLike, keys: Optional[List[str]] = None) ->
         plt.savefig(
             os.path.join(save_dictionary, "training_{}.png".format(key)), format="png", dpi=100
         )
+        plt.close()  # Close the figure to free memory and avoid conflicts
         print("Figure saved:", os.path.join(save_dictionary, "training_{}.png".format(key)))

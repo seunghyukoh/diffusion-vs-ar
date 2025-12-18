@@ -115,18 +115,23 @@ def load_model_and_tokenizer(
             config=config,
             torch_dtype=model_args.compute_dtype,
             low_cpu_mem_usage=(not is_deepspeed_zero3_enabled()),
+            trust_remote_code=True,
             **config_kwargs,
         )
         logger.info(f"Loading pretrained model from {model_to_load}")
     except:
         model = AutoModelForCausalLM.from_config(
             config,
+            trust_remote_code=True,
         )
         logger.info("Training from scratch...")
     # Load and prepare pre-trained models (without valuehead).
     if stage != "sft":
         model_lib = importlib.import_module(f"llmtuner.tuner.{stage}.model")
-        model = model_lib.DiffusionModel(model, config, diffusion_args)
+        if "llada" in model_args.model_name_or_path:
+            model = model_lib.DiffusionModelLLaDA(model, config, diffusion_args)
+        else:
+            model = model_lib.DiffusionModelGPT2(model, config, diffusion_args)
 
     # Register auto class to save the custom code files.
     if isinstance(config, PretrainedConfig) and "AutoConfig" in getattr(config, "auto_map", {}):

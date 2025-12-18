@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
+from transformers import GPT2LMHeadModel
 
 
-class DiffusionModel(nn.Module):
+class DiffusionModelGPT2(nn.Module):
     """
     diffusion model
     """
@@ -49,3 +50,35 @@ class DiffusionModel(nn.Module):
         logits = self.get_logits(x)
 
         return logits
+
+
+class DiffusionModelLLaDA(nn.Module):
+    """
+    diffusion model
+    """
+
+    def __init__(self, model, config, diffusion_args):
+        super().__init__()
+
+        self.model = model
+        self.config = self.model.config
+        self.embed_dim = self.config.hidden_size
+        self.hidden_dim = self.config.hidden_size
+        self.vocab_size = config.vocab_size
+        self.denoise_model = (
+            self.model.transformer
+        )  # use inputs_embeds instead of input_ids in forward function
+        # for gpt2block in self.model.transformer.h:
+        #     gpt2block.attn.bias.fill_(True)  # remove causal mask
+        self.diffusion_args = diffusion_args
+
+    def get_input_embeddings(self):
+        return self.transformer.ff_out
+
+    def forward(self, input_ids, t=None, attention_mask=None):
+        """
+        denoise the input
+        """
+        output = self.model(input_ids, attention_mask=attention_mask)
+
+        return output.logits

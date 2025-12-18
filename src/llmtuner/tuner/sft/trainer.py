@@ -1,9 +1,10 @@
-import os
 import json
-import torch
-import numpy as np
-import torch.nn as nn
+import os
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
+import torch
+import torch.nn as nn
 from transformers import Seq2SeqTrainer
 
 from llmtuner.extras.constants import IGNORE_INDEX
@@ -33,47 +34,50 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
 
         Subclass and override to inject custom behavior.
         """
-        labels = inputs["labels"].clone() if "labels" in inputs else None # backup labels
-        if self.args.predict_with_generate: # only at inference stage 
+        labels = inputs["labels"].clone() if "labels" in inputs else None  # backup labels
+        if self.args.predict_with_generate:  # only at inference stage
             prompt_len, label_len = inputs["input_ids"].size(-1), inputs["labels"].size(-1)
-            assert self.tokenizer.padding_side == "left", "This method only accepts left-padded tensor."
+            assert (
+                self.tokenizer.padding_side == "left"
+            ), "This method only accepts left-padded tensor."
             if prompt_len > label_len:
-                inputs["labels"] = self._pad_tensors_to_target_len(inputs["labels"], inputs["input_ids"])
+                inputs["labels"] = self._pad_tensors_to_target_len(
+                    inputs["labels"], inputs["input_ids"]
+                )
             if label_len > prompt_len:
-                inputs["labels"] = inputs["labels"][:, :prompt_len] # truncate the labels instead of padding the inputs
+                inputs["labels"] = inputs["labels"][
+                    :, :prompt_len
+                ]  # truncate the labels instead of padding the inputs
 
         loss, generated_tokens, _ = super().prediction_step(
             model, inputs, prediction_loss_only=prediction_loss_only, ignore_keys=ignore_keys
         )
 
         if self.args.predict_with_generate:
-             # inference stage 'generated_tokens' is [B,N]
+            # inference stage 'generated_tokens' is [B,N]
             generated_tokens[:, :prompt_len] = self.tokenizer.pad_token_id
             generated_tokens = generated_tokens.contiguous()
         else:
             # training stage 'generated_tokens' is [B,N,V], should handle previous tokens
             generated_tokens = generated_tokens.argmax(-1)
-            generated_tokens = torch.cat([generated_tokens[:,0:1], generated_tokens[:,:-1]], dim=-1)
-       
+            generated_tokens = torch.cat(
+                [generated_tokens[:, 0:1], generated_tokens[:, :-1]], dim=-1
+            )
+
         return loss, generated_tokens, labels
 
     def _pad_tensors_to_target_len(
-        self,
-        src_tensor: torch.Tensor,
-        tgt_tensor: torch.Tensor
+        self, src_tensor: torch.Tensor, tgt_tensor: torch.Tensor
     ) -> torch.Tensor:
         r"""
         Pads the tensor to the same length as the target tensor.
         """
         assert self.tokenizer.pad_token_id is not None, "Pad token is required."
         padded_tensor = self.tokenizer.pad_token_id * torch.ones_like(tgt_tensor)
-        padded_tensor[:, -src_tensor.shape[-1]:] = src_tensor # adopt left-padding
-        return padded_tensor.contiguous() # in contiguous memory
+        padded_tensor[:, -src_tensor.shape[-1] :] = src_tensor  # adopt left-padding
+        return padded_tensor.contiguous()  # in contiguous memory
 
-    def save_predictions(
-        self,
-        predict_results: "PredictionOutput"
-    ) -> None:
+    def save_predictions(self, predict_results: "PredictionOutput") -> None:
         r"""
         Saves model predictions to `output_dir`.
 
@@ -85,11 +89,23 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         output_prediction_file = os.path.join(self.args.output_dir, "generated_predictions.jsonl")
         logger.info(f"Saving prediction results to {output_prediction_file}")
 
-        preds = np.where(predict_results.predictions != IGNORE_INDEX, predict_results.predictions, self.tokenizer.pad_token_id)
-        labels = np.where(predict_results.label_ids != IGNORE_INDEX, predict_results.label_ids, self.tokenizer.pad_token_id)
+        preds = np.where(
+            predict_results.predictions != IGNORE_INDEX,
+            predict_results.predictions,
+            self.tokenizer.pad_token_id,
+        )
+        labels = np.where(
+            predict_results.label_ids != IGNORE_INDEX,
+            predict_results.label_ids,
+            self.tokenizer.pad_token_id,
+        )
 
-        decoded_preds = self.tokenizer.batch_decode(preds, skip_special_tokens=True, clean_up_tokenization_spaces=True)
-        decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True, clean_up_tokenization_spaces=True)
+        decoded_preds = self.tokenizer.batch_decode(
+            preds, skip_special_tokens=True, clean_up_tokenization_spaces=True
+        )
+        decoded_labels = self.tokenizer.batch_decode(
+            labels, skip_special_tokens=True, clean_up_tokenization_spaces=True
+        )
 
         with open(output_prediction_file, "w", encoding="utf-8") as writer:
             res: List[str] = []

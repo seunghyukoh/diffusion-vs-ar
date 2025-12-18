@@ -1,35 +1,46 @@
-
 import json
-from pathlib import Path
 import os
+from pathlib import Path
 from typing import Dict, List, Sequence, Union
 
 from transformers.tokenization_utils import AddedToken, PreTrainedTokenizer
 
 
 def get_uci_labels():
-    """ Returns a list of possible moves encoded as UCI (including
+    """Returns a list of possible moves encoded as UCI (including
     promotions).
     Source:
         https://github.com/Zeta36/chess-alpha-zero/blob/
         master/src/chess_zero/config.py#L88
     """
     labels_array = []
-    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-    numbers = ['1', '2', '3', '4', '5', '6', '7', '8']
-    promoted_to = ['q', 'r', 'b', 'n']
+    letters = ["a", "b", "c", "d", "e", "f", "g", "h"]
+    numbers = ["1", "2", "3", "4", "5", "6", "7", "8"]
+    promoted_to = ["q", "r", "b", "n"]
 
     for l1 in range(8):
         for n1 in range(8):
-            destinations = [(t, n1) for t in range(8)] + \
-                [(l1, t) for t in range(8)] + \
-                [(l1 + t, n1 + t) for t in range(-7, 8)] + \
-                [(l1 + t, n1 - t) for t in range(-7, 8)] + \
-                [(l1 + a, n1 + b) for (a, b) in
-                    [(-2, -1), (-1, -2), (-2, 1), (1, -2),
-                     (2, -1), (-1, 2), (2, 1), (1, 2)]]
+            destinations = (
+                [(t, n1) for t in range(8)]
+                + [(l1, t) for t in range(8)]
+                + [(l1 + t, n1 + t) for t in range(-7, 8)]
+                + [(l1 + t, n1 - t) for t in range(-7, 8)]
+                + [
+                    (l1 + a, n1 + b)
+                    for (a, b) in [
+                        (-2, -1),
+                        (-1, -2),
+                        (-2, 1),
+                        (1, -2),
+                        (2, -1),
+                        (-1, 2),
+                        (2, 1),
+                        (1, 2),
+                    ]
+                ]
+            )
 
-            for (l2, n2) in destinations:
+            for l2, n2 in destinations:
                 if (l1, n1) != (l2, n2) and l2 in range(8) and n2 in range(8):  # noqa: E501
                     move = letters[l1] + numbers[n1] + letters[l2] + numbers[n2]  # noqa: E501
                     labels_array.append(move)
@@ -37,23 +48,24 @@ def get_uci_labels():
     for l1 in range(8):
         letter = letters[l1]
         for p in promoted_to:
-            labels_array.append(letter + '2' + letter + '1' + p)
-            labels_array.append(letter + '7' + letter + '8' + p)
+            labels_array.append(letter + "2" + letter + "1" + p)
+            labels_array.append(letter + "7" + letter + "8" + p)
             if l1 > 0:
                 l_l = letters[l1 - 1]
-                labels_array.append(letter + '2' + l_l + '1' + p)
-                labels_array.append(letter + '7' + l_l + '8' + p)
+                labels_array.append(letter + "2" + l_l + "1" + p)
+                labels_array.append(letter + "7" + l_l + "8" + p)
             if l1 < 7:
                 l_r = letters[l1 + 1]
-                labels_array.append(letter + '2' + l_r + '1' + p)
-                labels_array.append(letter + '7' + l_r + '8' + p)
+                labels_array.append(letter + "2" + l_r + "1" + p)
+                labels_array.append(letter + "7" + l_r + "8" + p)
     return labels_array
 
+
 def get_chess_vocab():
-    numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-    b_pieces = ['k', 'q', 'r', 'b', 'n', 'p']
-    w_pieces = ['K', 'Q', 'R', 'B', 'N', 'P']
-    special = ['-', '.', 'w', 'b', ' ']
+    numbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    b_pieces = ["k", "q", "r", "b", "n", "p"]
+    w_pieces = ["K", "Q", "R", "B", "N", "P"]
+    special = ["-", ".", "w", "b", " "]
     actions = get_uci_labels()
     vocabs = numbers + b_pieces + w_pieces + special + actions
     return vocabs
@@ -111,14 +123,14 @@ class CustomTokenizer(PreTrainedTokenizer):
 
     def _tokenize(self, text: str) -> List[str]:
         # suppose text is a like "split1 split2 split3", convert to character if split* not in vocab
-        splits = text.split(' ')
+        splits = text.split(" ")
         tokens = []
         for split in splits:
-            if split is not '':
+            if split is not "":
                 if split in self._vocab_str_to_int:
-                    tokens.extend([split, ' '])
+                    tokens.extend([split, " "])
                 else:
-                    tokens.extend(list(split) + [' '])
+                    tokens.extend(list(split) + [" "])
         return tokens[:-1]
 
     def _convert_token_to_id(self, token: str) -> int:
@@ -135,14 +147,14 @@ class CustomTokenizer(PreTrainedTokenizer):
             "vocab": self.vocab,
             "model_max_length": self.model_max_length,
         }
-    
+
     def get_vocab(self) -> Dict[str, int]:
         return self._vocab_str_to_int
-    
+
     @classmethod
     def from_config(cls, config: Dict) -> "CustomTokenizer":
         cfg = {}
-        cfg["vocab"] = config['vocab']
+        cfg["vocab"] = config["vocab"]
         cfg["model_max_length"] = config["model_max_length"]
         return cls(**cfg)
 
@@ -158,8 +170,8 @@ class CustomTokenizer(PreTrainedTokenizer):
         with open(cfg_file) as f:
             cfg = json.load(f)
         return cls.from_config(cfg)
-    
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     tokenizer = CustomTokenizer(get_chess_vocab(), model_max_length=128)
     print(tokenizer.vocab_size)

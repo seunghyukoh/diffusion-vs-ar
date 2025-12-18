@@ -1,12 +1,12 @@
-import os
-import math
 import json
-import matplotlib.pyplot as plt
+import math
+import os
 from typing import List, Optional
+
+import matplotlib.pyplot as plt
 from transformers.trainer import TRAINER_STATE_NAME
 
 from llmtuner.extras.logging import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -17,7 +17,7 @@ def smooth(scalars: List[float]) -> List[float]:
     """
     last = scalars[0]
     smoothed = list()
-    weight = 1.8 * (1 / (1 + math.exp(-0.05 * len(scalars))) - 0.5) # a sigmoid function
+    weight = 1.8 * (1 / (1 + math.exp(-0.05 * len(scalars))) - 0.5)  # a sigmoid function
     for next_val in scalars:
         smoothed_val = last * weight + (1 - weight) * next_val
         smoothed.append(smoothed_val)
@@ -49,5 +49,7 @@ def plot_loss(save_dictionary: os.PathLike, keys: Optional[List[str]] = None) ->
         plt.xlabel("step")
         plt.ylabel(key)
         plt.legend()
-        plt.savefig(os.path.join(save_dictionary, "training_{}.png".format(key)), format="png", dpi=100)
+        plt.savefig(
+            os.path.join(save_dictionary, "training_{}.png".format(key)), format="png", dpi=100
+        )
         print("Figure saved:", os.path.join(save_dictionary, "training_{}.png".format(key)))
